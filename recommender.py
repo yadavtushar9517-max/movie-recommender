@@ -1,34 +1,37 @@
 import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
+# load dataset
 movies = pd.read_csv("movies.csv")
-ratings = pd.read_csv("ratings.csv")
 
-data = pd.merge(ratings, movies, on="movieId")
+# fill missing genres
+movies['genres'] = movies['genres'].fillna('')
 
-# filter popular movies
-movie_counts = data['title'].value_counts()
-popular_movies = movie_counts[movie_counts > 50].index
-data = data[data['title'].isin(popular_movies)]
+# convert genres into numerical vectors
+cv = CountVectorizer(tokenizer=lambda x: x.split('|'))
 
-# pivot table
-user_movie_matrix = data.pivot_table(
-    index='userId',
-    columns='title',
-    values='rating'
-)
+genre_matrix = cv.fit_transform(movies['genres'])
 
+# compute similarity
+similarity = cosine_similarity(genre_matrix)
+
+# recommendation function
 def recommend(movie_name):
 
-    movie_ratings = user_movie_matrix[movie_name]
+    movie_index = movies[movies['title'] == movie_name].index[0]
 
-    similar_movies = user_movie_matrix.corrwith(movie_ratings)
+    distances = similarity[movie_index]
 
-    corr_df = pd.DataFrame(similar_movies, columns=['correlation'])
+    movie_list = sorted(
+        list(enumerate(distances)),
+        reverse=True,
+        key=lambda x: x[1]
+    )[1:10]
 
-    corr_df.dropna(inplace=True)
+    recommendations = []
 
-    recommendations = corr_df.sort_values(
-        'correlation', ascending=False
-    ).head(10)
+    for i in movie_list:
+        recommendations.append(movies.iloc[i[0]].title)
 
-    return recommendations.index.tolist()
+    return recommendations
