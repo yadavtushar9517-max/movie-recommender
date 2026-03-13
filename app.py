@@ -1,11 +1,13 @@
 import streamlit as st
-from recommender import recommend, user_movie_matrix
+import pandas as pd
+from recommender import recommend
 
 st.title("🎬 Movie Recommendation System")
+movies=pd.read_csv("movies.csv")
 
 st.write("Select a movie to get recommendations")
 
-movie_list = user_movie_matrix.columns.tolist()
+movie_list = movies["title"].tolist()
 
 selected_movie = st.selectbox(
     "Choose a movie",
@@ -19,4 +21,5 @@ if st.button("Recommend"):
     st.subheader("Recommended Movies")
 
     for movie in recommendations:
+
         st.write(movie)
